@@ -1,69 +1,25 @@
-// Import required packages
 const express = require("express");
 const mongoose = require("mongoose");
-const cors = require("cors"); // Enables Cross-Origin Resource Sharing
-const dotenv = require("dotenv"); // Loads environment variables from .env file
-const Product = require("./models/Product"); // Import Product model
+const cors = require("cors");
+const dotenv = require("dotenv");
+const connectDB = require("./config/db");
 
-dotenv.config(); // Load environment variables
+const appointmentRoutes = require("./routes/appointmentRoute");
 
+dotenv.config();
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors()); // Allow cross-origin requests (frontend-backend communication)
-app.use(express.json()); // Parse incoming JSON requests
+app.use(cors());
+app.use(express.json()); // Built-in body parser
 
 // Connect to MongoDB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected")) // Successful connection
-  .catch((err) => console.error(err)); // Connection error handling
+connectDB();
 
-// ------------------ ROUTES ------------------
+// Routes
+app.use("/api/appointments", appointmentRoutes);
 
-// READ: Get all products
-app.get("/api/products", async (req, res) => {
-  try {
-    const products = await Product.find(); // Fetch all products from database
-    res.json(products); // Send products as JSON response
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch products" }); // Handle server errors
-  }
+// Server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
-
-// CREATE: Add a new product
-app.post("/api/products", async (req, res) => {
-  try {
-    const product = new Product(req.body); // Create new product from request body
-    await product.save(); // Save product to database
-    res.status(201).json(product); // Return created product with 201 status
-  } catch (err) {
-    res.status(500).json({ error: "Failed to create product" }); // Handle errors
-  }
-});
-
-// UPDATE: Edit a product by ID
-app.put("/api/products/:id", async (req, res) => {
-  try {
-    const updated = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true, // Return the updated document
-    });
-    if (!updated) return res.status(404).json({ error: "Product not found" });
-    res.json(updated); // Send updated product
-  } catch (err) {
-    res.status(500).json({ error: "Update failed" }); // Handle errors
-  }
-});
-
-// DELETE: Remove a product by ID
-app.delete("/api/products/:id", async (req, res) => {
-  try {
-    const deleted = await Product.findByIdAndDelete(req.params.id); // Delete product
-    if (!deleted) return res.status(404).json({ error: "Product not found" });
-    res.json({ message: "Product deleted successfully" }); // Confirm deletion
-  } catch (err) {
-    res.status(500).json({ error: "Delete failed" }); // Handle errors
-  }
-});
-
-// Start the server
